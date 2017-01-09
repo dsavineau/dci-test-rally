@@ -9,20 +9,17 @@ export OS_IMAGE_API_VERSION=1
 source ~/${DCI_OVERCLOUD_STACK_NAME}rc
 [ -d ~/.rally ] || mkdir ~/.rally
 [ -d ~/.rally/plugins ] || git clone http://github.com/redhat-openstack/rally-plugins.git ~/.rally/plugins
-if [ ! -f CentOS-7-x86_64-GenericCloud.raw ]; then
-    curl http://cloud.centos.org/centos/7/images/CentOS-7-x86_64-GenericCloud.raw.tar.gz|tar xfz -
-    find . -regex '\./CentOS-7-x86_64-GenericCloud-*[0-9]+.raw' -exec mv {} CentOS-7-x86_64-GenericCloud.raw \;
+if [ ! -f CentOS-7-x86_64-GenericCloud.qcow2 ]; then
+    curl http://cloud.centos.org/centos/7/images/CentOS-7-x86_64-GenericCloud.qcow2.xz | unxz - > CentOS-7-x86_64-GenericCloud.qcow2
+    qemu-img convert -f qcow2 -O raw CentOS-7-x86_64-GenericCloud.qcow2 CentOS-7-x86_64-GenericCloud.raw
 fi
 
-glance image-show CentOS-7-x86_64-GenericCloud || glance image-create --name "CentOS-7-x86_64-GenericCloud" --disk-format qcow2 --container-format bare --is-public=1 < CentOS-7-x86_64-GenericCloud.raw
+glance image-show CentOS-7-x86_64-GenericCloud || glance image-create --name "CentOS-7-x86_64-GenericCloud" --disk-format raw --container-format bare --is-public=1 < CentOS-7-x86_64-GenericCloud.raw
 
 [ -f cirros-0.3.2-x86_64-vmlinuz ] || curl http://download.cirros-cloud.net/0.3.2/cirros-0.3.2-x86_64-uec.tar.gz  | tar zfxv -
 KERNEL_ID=`glance image-create --name "cirros-0.3.2-x86_64-uec-kernel" --disk-format aki --container-format aki --is-public=1 --file cirros-0.3.2-x86_64-vmlinuz | awk '/ id / { print $4 }'`
 RAMDISK_ID=`glance image-create --name "cirros-0.3.2-x86_64-uec-ramdisk" --disk-format ari --container-format ari --is-public=1 --file cirros-0.3.2-x86_64-initrd | awk '/ id / { print $4 }'`
 glance image-show cirros-0.3.2-x86_64-uec || glance image-create --name cirros-0.3.2-x86_64-uec --disk-format ami --container-format ami --is-public=1 --property kernel_id=$KERNEL_ID --property ramdisk_id=$RAMDISK_ID --file cirros-0.3.2-x86_64-blank.img
-
-
-[ -f CentOS-7-x86_64-GenericCloud.qcow2 ] || curl http://cloud.centos.org/centos/7/images/CentOS-7-x86_64-GenericCloud.qcow2.xz | unxz - > CentOS-7-x86_64-GenericCloud.qcow2
 
 [ -f /etc/rally/rally.conf.sample ] && sudo cp -v /etc/rally/rally.conf.sample /etc/rally/rally.conf
 sudo chmod 644 /etc/rally/rally.conf
